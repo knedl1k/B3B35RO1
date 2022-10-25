@@ -1,0 +1,69 @@
+int ultrasonic = 100;
+int ultrasonic_threshold = 50;
+int ultrasonic_timing = 50;
+int curr_tick;
+int last_tick = 0;
+int pocitadlo = 0;
+int nothing_find_counter = 0;
+sub ramming_speed() {
+  Off(OUT_BC);
+  while (true) {
+    OnFwd(OUT_BC, 60);
+    Wait(20);
+    if (Sensor(IN_2) < 47) {
+      PlayTone(650, 200);
+      OnFwd(OUT_BC, -30);
+      Wait(1200);
+      break;
+    }
+  }
+  Off(OUT_BC);
+  RotateMotor(OUT_BC, 40, 30);
+}
+sub random_move() {
+  pocitadlo = 0;
+  Off(OUT_BC);
+  OnFwd(OUT_BC, 60);
+  while (true) {
+    pocitadlo = pocitadlo + 1;
+    OnFwd(OUT_BC, 40);
+    Wait(100);
+    if (Sensor(IN_2) < 47) {
+      PlayTone(650, 200);
+      OnFwd(OUT_BC, -30);
+      Wait(1200);
+      Off(OUT_BC);
+      break;
+    }
+    if (55555 < pocitadlo) {
+      break;
+    }
+  }
+  Off(OUT_BC);
+  nothing_find_counter = 0;
+}
+sub ranging() {
+  while (true) {
+    OnFwd(OUT_B, 40);
+    OnRev(OUT_C, 40);
+
+    ultrasonic = SensorUS(IN_4);
+
+    if (ultrasonic < 50) {
+      PlayTone(450, 500);
+      Wait(10);
+      ramming_speed();
+    }
+
+    nothing_find_counter = nothing_find_counter + 1;
+    if (nothing_find_counter > 100) {
+      random_move();
+    }
+  }
+}
+task main() {
+  SetSoundVolume(4);
+  SetSensorLight(IN_2);
+  SetSensorLowspeed(IN_4);
+  ranging();
+}

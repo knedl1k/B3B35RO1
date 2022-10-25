@@ -1,0 +1,115 @@
+#define Kp 160
+#define offset 52
+#define HiSpeed 73
+#define Ki 0
+#define Kd 80
+#define LowSpeed 60
+int actual, error, turn, powerB, powerC, integral, derivative, lasterror, sonic_dist, mcycles;
+void objed() {
+  PlayTone(400, 500);
+  Off(OUT_BC);
+  Wait(50);
+  /*RotateMotor(OUT_C,60,200);
+  RotateMotor(OUT_BC,60,450);//stop, rotate to vector, go forward a bit to
+  tangent OnFwdReg(OUT_B,55,OUT_REGMODE_SYNC);
+  OnFwdReg(OUT_C,55,OUT_REGMODE_SYNC);
+  Wait(150);
+  RotateMotor(OUT_B,60,200);
+  OnFwdReg(OUT_B,28,OUT_REGMODE_SYNC);
+  OnFwdReg(OUT_C,56,OUT_REGMODE_SYNC);
+  Wait(100); */
+
+  /*RotateMotor(OUT_C,60,120);
+  OnFwd(OUT_BC, LowSpeed);
+  Wait(100);
+  RotateMotor(OUT_C,60,-120);
+  OnFwd(OUT_BC, LowSpeed);
+  Wait(50); */
+
+  OnFwd(OUT_C, HiSpeed + 10);
+  OnFwd(OUT_B, 20);
+  Wait(500);
+  OnFwd(OUT_BC, HiSpeed);
+  Wait(300);
+  OnFwd(OUT_C, 20);
+  OnFwd(OUT_B, HiSpeed + 10);
+  Wait(500);
+  OnFwd(OUT_BC, HiSpeed);
+  Wait(300);
+  while (true) {
+    OnFwdReg(OUT_B, 56, OUT_REGMODE_SYNC);
+    OnFwdReg(OUT_C, 32, OUT_REGMODE_SYNC);  // go in circle
+    actual = SENSOR_2;
+    if (actual <= offset - 3) {
+      Off(OUT_BC);
+      break;
+    }
+    Wait(10);
+  }
+  Wait(10);
+  while (true) {
+    OnFwdReg(OUT_C, 30, OUT_REGMODE_SYNC);
+    OnRevReg(OUT_B, 15, OUT_REGMODE_SYNC);
+    actual = SENSOR_2;
+    if (actual >= offset - 2) {
+      Off(OUT_C);
+      break;
+    }
+  }
+}
+task main() {
+  SetSoundVolume(4);
+  SetSensorLight(IN_2);
+  SetSensorLowspeed(IN_4);
+  integral = 0;
+  derivative = 0;
+  lasterror = 0;
+  int ncycles = 0;
+  int sonic_dist_sum = 0;
+  do {
+    OnFwd(OUT_BC, LowSpeed);
+  } while (Sensor(IN_2) > offset);
+  while (true) {
+    actual = Sensor(IN_2);
+    mcycles++;
+    if (!(mcycles % 2)) {
+      sonic_dist = SensorUS(IN_4);
+
+      if (sonic_dist != 255) {
+        ncycles++;
+        sonic_dist_sum += sonic_dist;
+      }
+    }
+    if (ncycles >= 3) {
+      ncycles = 0;
+      sonic_dist = sonic_dist_sum / 3;
+      if (sonic_dist < 25) {
+        objed();
+      }
+      sonic_dist_sum = 0;
+    }
+    error = offset - actual;
+    derivative = error - lasterror;
+    turn = (Kp * error) + (Ki * integral) + (Kd * derivative);
+    turn = turn / 100;
+    powerB = HiSpeed - turn;
+    powerC = HiSpeed + turn;
+    if (powerB < 0) {
+      powerB = 0;
+    }
+    if (powerC < 0) {
+      powerC = 0;
+    }
+    if (powerC > 100) {
+      powerC = 100;
+    }
+    if (powerB > 100) {
+      powerB = 100;
+    }
+    OnFwd(OUT_C, powerC);
+    OnFwd(OUT_B, powerB);
+    integral = +error;
+    lasterror = error;
+    Wait(10);
+  }
+}
