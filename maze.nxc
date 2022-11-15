@@ -1,0 +1,118 @@
+#define C_OFFSET 2
+#define ZLUTA    54
+int sonar=0;
+int read_s1, read_s2;
+bool vlevo;
+
+void backup(int time)
+{
+     OnRev(OUT_B,50);
+     OnRev(OUT_C, 50+C_OFFSET);
+     Wait(time);
+}
+
+void goRight(int speed, int time)
+{
+     OnFwd(OUT_C, speed);
+     OnRev(OUT_B, speed);
+     Wait(time);
+     Coast(OUT_BC);
+}
+
+void goLeft(int speed, int time)
+{
+     OnFwd(OUT_B, speed);
+     OnRev(OUT_C, speed);
+     Wait(time);
+     Coast(OUT_BC);
+}
+int min(int a, int b) {
+    if (a > b) {
+       return b;
+    }
+    else {
+         return a;
+    }
+}
+
+task main()
+{
+    int opakovani[2];
+    ArrayInit(opakovani, 1, 2);
+    SetSoundVolume(4);
+    int color_read = 0;
+    int sum = 0;
+    SetSensorTouch(S1);
+    SetSensorTouch(S2);
+    SetSensorLowspeed(S4);
+    SetSensorLight(S3);
+    bool vlevo=false;
+    bool barva=true;
+    
+    while (barva) {
+          OnFwd(OUT_B,60);
+          OnFwd(OUT_C,60+C_OFFSET);
+          
+          color_read = Sensor(S3);
+          if (color_read>ZLUTA) {
+             PlayTone(440,1000);
+             Off(OUT_BC);
+             Wait(50);
+             for (int x = 0;3 > x ; x++) {
+                 sum += Sensor(S3);
+                 Wait(10);
+                 
+             }
+             if (sum > ZLUTA*3) {
+             PlayTone(440,1000);
+             Wait(100);
+             barva = false;
+             break;
+             }
+              else {
+              sum = 0;
+              }
+
+             sum += color_read;
+          }
+
+          
+          // dotyk
+          read_s1 = Sensor(S1);
+          read_s2 = Sensor(S2);
+          if (read_s1||read_s2) {
+             Wait(20);
+             read_s1 = Sensor(S1);
+             read_s2 = Sensor(S2);
+             if (read_s1 && read_s2) {
+               ArrayInit(opakovani, 1, 2);
+               backup(300);
+               if (vlevo) {
+               goLeft(50,500);
+               vlevo=false;
+               }
+               else {
+               goRight(50,500);
+               vlevo=true;
+               }
+             }
+             else {
+               if (read_s2) {
+                  backup(250);
+                  goRight(50,min(opakovani[0]*50+300,700));
+                  opakovani[0] = (opakovani[0] + 1);
+                  }
+               if (read_s1) {
+                  backup(250);
+                  goLeft(50,min(opakovani[0]*50+300,700));
+                  opakovani[1] = (opakovani[1] + 1);
+                  }
+             }
+
+          }
+
+    }
+    
+    
+
+}
